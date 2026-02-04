@@ -7,15 +7,15 @@ class MimiAI:
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
 
         if not self.api_key:
-            print("⚠️ WARNING: No Gemini API Key found.")
+            print("WARNING: No Gemini API Key found.")
             self.model = None
             return
 
-        # 2. Setting
+        # 2. Seting
         try:
             genai.configure(api_key=self.api_key)
         except Exception as e:
-            print(f"⚠️ Config Error: {e}")
+            print(f"Config Error: {e}")
             self.model = None
             return
 
@@ -34,11 +34,9 @@ class MimiAI:
         - Otherwise: Reply with conversational text.
         """
 
-        # 4. Auto-Detect
+        # 4. Auto-Detect Model
         self.model = None
         available_models = []
-        
-        print("🔍 Scanning available models...")
         try:
             for m in genai.list_models():
                 if 'generateContent' in m.supported_generation_methods:
@@ -49,37 +47,43 @@ class MimiAI:
                 target_model = "gemini-1.5-flash"
             elif "models/gemini-1.5-flash-latest" in available_models:
                 target_model = "gemini-1.5-flash-latest"
+            elif "models/gemini-2.5-flash" in available_models:
+                target_model = "gemini-2.5-flash"
             elif "models/gemini-pro" in available_models:
                 target_model = "gemini-pro"
             elif len(available_models) > 0:
                 target_model = available_models[0].replace("models/", "")
             
             if target_model:
-                print(f"✅ Selected Model: {target_model}")
+                print(f"Selected Model: {target_model}")
                 self.model = genai.GenerativeModel(
                     model_name=target_model,
                     system_instruction=self.system_instruction
                 )
+                
+                # Starting Memory (History = None)
+                self.chat_session = self.model.start_chat(history=[])
+                
             else:
-                print("❌ Error: No text generation models found for this API Key.")
+                print("Error: No text generation models found.")
 
         except Exception as e:
-            print(f"⚠️ Error listing models: {e}")
-            print("⚠️ Trying fallback to 'gemini-pro'...")
-            self.model = genai.GenerativeModel('gemini-pro')
+            print(f"Error setup: {e}")
+            self.model = None
 
     def chat(self, user_text):
-        if not self.model:
+        if not self.model or not self.chat_session:
             return "Error: AI not initialized."
 
-        print(f"🤖 Mimi processing: {user_text}")
+        print(f"Mimi processing: {user_text}")
 
         try:
-            response = self.model.generate_content(
+            # Use chat_session for memory
+            response = self.chat_session.send_message(
                 user_text,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.7,
-                    max_output_tokens=500
+                    max_output_tokens=500 
                 )
             )
             result = response.text.replace("```json", "").replace("```", "").strip()
@@ -92,11 +96,11 @@ class MimiAI:
 if __name__ == "__main__":
     TEST_API_KEY = "" 
 
-    print("⏳ Connecting to Mimi AI...")
+    print("Connecting to Mimi AI...")
     bot = MimiAI(api_key=TEST_API_KEY)
 
     print("\n" + "="*40)
-    print("  🤖 MIMI AI CONSOLE TEST")
+    print("  MIMI AI MEMORY TEST")
     print("  Type your command (or 'quit' to exit)")
     print("="*40 + "\n")
 
@@ -104,14 +108,12 @@ if __name__ == "__main__":
         try:
             user_input = input("You: ")
             if user_input.lower() in ["quit", "exit", "bye"]:
-                print("👋 Bye bye!")
                 break
             
             if user_input.strip():
                 response = bot.chat(user_input)
-                print(f"👉 Result: {response}")
+                print(f"Result: {response}")
                 print("-" * 20)
 
         except KeyboardInterrupt:
-            print("\n👋 Exiting...")
             break
