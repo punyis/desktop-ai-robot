@@ -37,11 +37,11 @@ All available tools are defined in this list. Backend can copy this list directl
       "properties": {
         "task_name": {
           "type": "string",
-          "description": "The specific activity to be done (e.g., Buy milk, Read AI book)."
+          "description": "The specific activity (e.g., Wash dishes)."
         },
         "due_datetime": {
           "type": "string",
-          "description": "The date and time for the task in ISO 8601 format or clear text (e.g., 2024-02-20 09:00)."
+          "description": "Time expression (e.g., 6 PM, tomorrow)."
         }
       },
       "required": ["task_name"]
@@ -49,13 +49,13 @@ All available tools are defined in this list. Backend can copy this list directl
   },
   {
     "name": "query_todo",
-    "description": "Get the list of tasks for a specific date.",
+    "description": "Get the list of tasks.",
     "parameters": {
       "type": "object",
       "properties": {
         "query_date": {
           "type": "string",
-          "description": "The target date (e.g., today, tomorrow, 2024-02-20). Default is today."
+          "description": "Target date (default: today)."
         }
       },
       "required": []
@@ -63,17 +63,17 @@ All available tools are defined in this list. Backend can copy this list directl
   },
   {
     "name": "set_timer",
-    "description": "Set a countdown timer for a specific duration.",
+    "description": "Set a countdown timer.",
     "parameters": {
       "type": "object",
       "properties": {
         "duration_seconds": {
           "type": "integer",
-          "description": "Total duration in seconds."
+          "description": "Duration in seconds."
         },
         "label": {
           "type": "string",
-          "description": "Name of the timer (e.g., Noodle, Study)."
+          "description": "Label (e.g., Reading, Noodle)."
         }
       },
       "required": ["duration_seconds"]
@@ -81,12 +81,26 @@ All available tools are defined in this list. Backend can copy this list directl
   },
   {
     "name": "query_timer",
-    "description": "Check how much time is left on current timers.",
+    "description": "Check remaining time.",
     "parameters": {
       "type": "object",
       "properties": {},
       "required": []
     }
+  },
+  {
+    "name": "play_music",
+    "description": "Play background music.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "genre": {
+          "type": "string",
+          "description": "Music style (default: lofi)."
+        }
+      },
+      "required": []
+    }
   }
 ]
-```
+'''

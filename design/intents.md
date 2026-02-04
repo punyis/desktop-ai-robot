@@ -1,33 +1,37 @@
-# AI Intent Definitions (Design Phase)
+# AI Intent Definitions (Final Demo Version)
 
-This document defines the core intents for the Desktop AI Robot.
-This logic will be used by the Backend (Function Calling) and Voice teams.
+This document defines the core intents for the Desktop AI Robot, supporting the 9 Demo Use Cases.
 
 ## 1. AddTodo
-* **Description:** The user wants to add a new task to the list.
-* **Example Utterance:** "Remind me to buy milk tomorrow at 8 AM."
-* **Required Data (Slots):**
-    * `task_name` (String): What to do? (e.g., "buy milk")
-    * `time` (String/Optional): When? (e.g., "tomorrow 8 AM")
+* **Description:** The user wants to add a new task.
+* **Demo Use Case:**
+    * "Remind me to submit the final report." (Missing time -> AI asks clarification)
+    * "Remind me to join the Zoom meeting tonight at 8 PM." (Full info)
+* **Slots:** `task_name` (Required), `due_datetime` (Optional)
 
 ## 2. QueryTodo
-* **Description:** The user asks about their tasks or schedule.
-* **Example Utterance:** "What do I have to do today?"
-* **Required Data (Slots):**
-    * `date` (String/Optional): Which day to check? (default = today)
+* **Description:** The user asks about their tasks.
+* **Demo Use Case:** "What do I have to do today?"
+* **Slots:** `query_date` (Optional, default=today)
 
 ## 3. SetTimer
 * **Description:** The user wants to start a countdown timer.
-* **Example Utterance:** "Set a timer for 10 minutes."
-* **Required Data (Slots):**
-    * `duration` (Integer/String): How long? (e.g., "10 minutes")
+* **Demo Use Case:**
+    * "Set a focus timer for 25 minutes."
+    * "I want to prepare for my exam for 1 hour." (Mapped to 60 mins timer)
+* **Slots:** `duration_seconds` (Required), `label` (Optional)
 
 ## 4. QueryTimer
-* **Description:** The user asks how much time is left on the current timer.
-* **Example Utterance:** "How much time is left?"
-* **Required Data (Slots):** None.
+* **Description:** The user asks about remaining time.
+* **Demo Use Case:** "How much time is left on the timer?"
+* **Slots:** None
 
-## 5. CompanionChat
-* **Description:** General conversation, small talk, or emotional support. No specific action required.
-* **Example Utterance:** "I feel tired today." / "Tell me a joke."
-* **Required Data (Slots):** None. (Pass text directly to LLM for a reply)
+## 5. PlayMusic
+* **Description:** The user wants to play background music for relaxation.
+* **Demo Use Case:** "Play some relaxing music."
+* **Slots:** `genre` (Optional, e.g., "lofi", "jazz")
+
+## 6. CompanionChat
+* **Description:** General conversation or emotional support.
+* **Demo Use Case:** "I feel really stressed." / "Start the work session."
+* **Slots:** None (Direct text reply)
