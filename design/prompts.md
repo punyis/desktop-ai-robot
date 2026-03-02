@@ -1,4 +1,4 @@
-# LLM Prompts Design (Final Version - English Only)
+# LLM Prompts Design (English Only)
 
 This document contains the final prompt strategies for the "Mimi" Desktop Robot.
 Target Language: English Only (to ensure high accuracy for STT/TTS during demo).
