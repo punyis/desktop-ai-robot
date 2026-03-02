@@ -1,4 +1,4 @@
-# AI Intent Definitions (Final Demo Version)
+# AI Intent Definitions
 
 This document defines the core intents for the Desktop AI Robot, supporting the 9 Demo Use Cases.
 
