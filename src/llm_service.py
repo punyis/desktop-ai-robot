@@ -94,7 +94,7 @@ class MimiAI:
 
 # --- Test Zone ---
 if __name__ == "__main__":
-    TEST_API_KEY = "AIzaSyCsKp_do5sKGpgU4g2ClhPTpYXvQwPFtWI" 
+    TEST_API_KEY = "" 
 
     print("Connecting to Mimi AI...")
     bot = MimiAI(api_key=TEST_API_KEY)
