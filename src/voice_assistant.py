@@ -1,5 +1,24 @@
 import os
+import speech_recognition as sr
+import whisper
+import subprocess
 import google.generativeai as genai
+
+
+def speak(text):
+    p = subprocess.Popen(
+        ["./piper/piper",
+         "--model", "./piper/en_US-lessac-medium.onnx",
+         "--output_file", "out.wav"],
+        stdin=subprocess.PIPE,
+        text=True
+    )
+    p.stdin.write(text)
+    p.stdin.close()
+    p.wait()
+
+    subprocess.run(["aplay", "out.wav"])
+
 
 class MimiAI:
     def __init__(self, api_key=None):
@@ -92,28 +111,65 @@ class MimiAI:
         except Exception as e:
             return f"Error connecting to AI: {str(e)}"
 
-# --- Test Zone ---
-if __name__ == "__main__":
-    TEST_API_KEY = "" 
 
-    print("Connecting to Mimi AI...")
-    bot = MimiAI(api_key=TEST_API_KEY)
+# =========================
+# 🎤 WHISPER (Speech to Text)
+# =========================
+print("Loading Whisper model...")
+whisper_model = whisper.load_model("tiny")
 
-    print("\n" + "="*40)
-    print("  MIMI AI MEMORY TEST")
-    print("  Type your command (or 'quit' to exit)")
-    print("="*40 + "\n")
+recognizer = sr.Recognizer()
+mic = sr.Microphone(device_index=2)
 
-    while True:
-        try:
-            user_input = input("You: ")
-            if user_input.lower() in ["quit", "exit", "bye"]:
-                break
-            
-            if user_input.strip():
-                response = bot.chat(user_input)
-                print(f"Result: {response}")
-                print("-" * 20)
+recognizer.energy_threshold = 300
+recognizer.pause_threshold = 2.0
+recognizer.dynamic_energy_threshold = True
 
-        except KeyboardInterrupt:
-            break
+print("Connecting to Mimi AI...")
+bot = MimiAI(api_key="")
+
+print("✅ System Ready (Ctrl+C to exit)\n")
+
+#main loop
+try:
+    with mic as source:
+        recognizer.adjust_for_ambient_noise(source, duration=1)
+
+        while True:
+            try:
+                print("🎤 Waiting for speech...")
+
+                audio = recognizer.listen(
+                    source,
+                    timeout=5,
+                    phrase_time_limit=None
+                )
+
+                print("🧠 Transcribing...")
+
+                with open("temp.wav", "wb") as f:
+                    f.write(audio.get_wav_data())
+
+                result = whisper_model.transcribe("temp.wav", language="en")
+                text = result["text"].strip()
+
+                if not text:
+                    print("⚠️ No speech detected")
+                    continue
+
+                print(f"💬 You: {text}")
+
+                
+                #GEMINI RESPONSE
+                response = bot.chat(text)
+                print(f"🤖 Mimi: {response}")
+
+    
+                #SPEAK
+                speak(response)
+
+            except sr.WaitTimeoutError:
+                continue
+
+except KeyboardInterrupt:
+    print("\n🛑 Exiting...")
