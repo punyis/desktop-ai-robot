@@ -43,8 +43,8 @@ class MimiAI:
                     available_models.append(m.name)
             
             target_model = ""
-            if "models/Gemini 3.1 Flash Lite" in available_models:
-                target_model = "Gemini 3.1 Flash Lite"
+            if "models/gemini-1.5-flash" in available_models:
+                target_model = "gemini-1.5-flash"
             elif "models/gemini-1.5-flash-latest" in available_models:
                 target_model = "gemini-1.5-flash-latest"
             elif "models/gemini-2.5-flash" in available_models:
