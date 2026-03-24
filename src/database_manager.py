@@ -8,7 +8,7 @@ class DatabaseManager:
     def get_connection(self):
         return sqlite3.connect(self.db_path)
 
-    # ฟังก์ชันสำหรับเพิ่ม Todo
+    # --- [Week 6] ฟังก์ชันสำหรับ Todo ---
     def add_todo(self, task_name, due_datetime=None):
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -18,7 +18,26 @@ class DatabaseManager:
         conn.close()
         print(f"✅ Added task: {task_name}")
 
-    # ฟังก์ชันสำหรับตั้ง Timer
+    def get_all_todos(self):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM todos")
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+
+    def edit_todo(self, todo_id, new_task_name=None, new_status=None):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        if new_task_name:
+            cursor.execute("UPDATE todos SET task_name = ? WHERE id = ?", (new_task_name, todo_id))
+        if new_status:
+            cursor.execute("UPDATE todos SET status = ? WHERE id = ?", (new_status, todo_id))
+        conn.commit()
+        conn.close()
+        print(f"✅ Edited Todo ID {todo_id}")
+
+    # --- [Week 6] ฟังก์ชันสำหรับ Timer ---
     def set_timer(self, duration_seconds, label=None):
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -29,30 +48,26 @@ class DatabaseManager:
         conn.close()
         print(f"✅ Set timer for {duration_seconds}s: {label}")
 
-    # --- ฟังก์ชันใหม่ที่เพิ่มให้ครับ ---
-    # ฟังก์ชันสำหรับดึงรายการ Todo ทั้งหมดมาโชว์ใน Terminal
-    def get_all_todos(self):
+    def cancel_timer(self, timer_id):
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM todos")
-        rows = cursor.fetchall()
+        cursor.execute("DELETE FROM timers WHERE id = ?", (timer_id,))
+        conn.commit()
         conn.close()
-        
-        print("\n--- Current To-Do List in Database ---")
-        if not rows:
-            print("No tasks found.")
-        for row in rows:
-            # row[0]=id, row[1]=task_name, row[2]=due_datetime, row[3]=status
-            print(f"ID: {row[0]} | Task: {row[1]} | Due: {row[2]} | Status: {row[3]}")
-        print("--------------------------------------\n")
-        return rows
+        print(f"🚫 Cancelled Timer ID: {timer_id}")
+
+    def get_timer_status(self, timer_id):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT created_at, duration_seconds FROM timers WHERE id = ?", (timer_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return row
 
 # --- ส่วนทดสอบ (Test Zone) ---
 if __name__ == "__main__":
     db = DatabaseManager()
-    
-    # 1. ทดสอบเพิ่มข้อมูล (ถ้าไม่อยากให้มันเพิ่มซ้ำทุกครั้งที่รัน สามารถใส่เครื่องหมาย # ไว้ข้างหน้าได้ครับ)
-    db.add_todo("Final check for Week 2", "2026-03-25 23:59:59")
-    
-    # 2. ทดสอบดึงข้อมูลมาโชว์ (อันนี้แหละที่อ้อมจะเห็นผลลัพธ์ใน Terminal เลย)
-    db.get_all_todos()
+    print("--- Running Final Test for Week 6 ---")
+    db.add_todo("Finish Week 6 Task", "2026-03-25 03:00:00")
+    db.set_timer(300, "Final Countdown Test")
+    print("All Tasks:", db.get_all_todos())
