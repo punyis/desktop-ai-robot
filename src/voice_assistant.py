@@ -1,133 +1,112 @@
 import os
 import speech_recognition as sr
 import json
-import google.generativeai as genai
+import time
+import threading
+from google import genai   # ✅ ใช้ตัวใหม่
 from database_manager import DatabaseManager
+from dotenv import load_dotenv
+load_dotenv()
 
-# ==========================================
-# 1. INITIALIZE DATABASE & AI
-# ==========================================
-db = DatabaseManager() 
+db = DatabaseManager()
 
+
+# ================= TIMER =================
+def notify_timer_finished(task_name):
+    print(f"\n🔔 TIMER EXPIRED: {task_name}!")
+    try:
+        import winsound
+        winsound.Beep(1000, 1000)
+    except:
+        pass
+
+
+def start_countdown(seconds, task_name="Timer"):
+    def countdown():
+        time.sleep(seconds)
+        notify_timer_finished(task_name)
+
+    timer_thread = threading.Thread(target=countdown)
+    timer_thread.start()
+
+
+# ================= AI =================
 class MimiAI:
     def __init__(self):
-        # ใส่ API Key ของอ้อมตรงๆ เพื่อความชัวร์
-        genai.configure(api_key="AIzaSyDw4lGfvWhfOYYAtPBGZfPuBwBMqAqZNDQ")
-        
+        # ✅ ใช้ env variable (ปลอดภัย)
+        self.client = genai.Client(api_key="AIzaSyC3uXG0xIkPWqaa5rshN7pfYZaFAhQHZ6Q")
+
         self.system_instruction = """
         You are "Mimi", a friendly AI. 
-        If user wants to add a task, output ONLY JSON: 
-        {"name": "add_todo", "parameters": {"task_name": "...", "due_datetime": "..."}}
-        Otherwise: Reply with 1 short English sentence.
+        - If user wants to add task → return JSON:
+          {"name": "add_todo", "parameters": {"task_name": "..."}}
+        - If user wants timer → return JSON:
+          {"name": "set_timer", "parameters": {"seconds": 60, "label": "..."}}
+        - Otherwise: respond with 1 short sentence.
         """
-        
-        # ค้นหาโมเดลที่ใช้งานได้ (แก้ปัญหา Error 404)
-        print("🔍 Checking available models...")
-        model_to_use = "gemini-1.5-flash" # ค่าเริ่มต้น
-        try:
-            available_models = [m.name for m in genai.list_models()]
-            if 'models/gemini-1.5-flash' in available_models:
-                model_to_use = "models/gemini-1.5-flash"
-            elif 'models/gemini-pro' in available_models:
-                model_to_use = "models/gemini-pro"
-            else:
-                # ถ้าไม่เจอเลย ให้เอารุ่นแรกที่รองรับการสร้างเนื้อหา
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        model_to_use = m.name
-                        break
-        except Exception as e:
-            print(f"⚠️ Model List Error: {e}")
-
-        print(f"🚀 Using Model: {model_to_use}")
-        
-        self.model = genai.GenerativeModel(
-            model_name=model_to_use,
-            system_instruction=self.system_instruction
-        )
-        self.chat_session = self.model.start_chat(history=[])
 
     def chat(self, user_text):
         try:
-            response = self.chat_session.send_message(user_text)
-            # ล้างเครื่องหมาย Markdown ออก
-            result = response.text.replace("```json", "").replace("```", "").strip()
-            return result
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=user_text + "\n" + self.system_instruction
+            )
+            return response.text.strip()
         except Exception as e:
-            return f"Error AI: {str(e)}"
+            return f"Error: {str(e)}"
+    print("API KEY =", os.getenv("GOOGLE_API_KEY"))
 
-# ==========================================
-# 2. WEEK 7 LOGIC: DATABASE INTEGRATION
-# ==========================================
+
+# ================= ACTION =================
 def process_action(ai_response):
-    """ฟังก์ชันแกะ JSON เพื่อบันทึกลง Database ของอ้อม"""
     try:
-        # พยายามแปลงข้อความเป็น JSON
         data = json.loads(ai_response)
-        
+
         if data["name"] == "add_todo":
             task = data["parameters"]["task_name"]
-            due = data["parameters"].get("due_datetime", "Today")
-            
-            # --- เรียกใช้ฟังก์ชันบันทึกข้อมูลของอ้อม ---
-            db.add_task(task, due) 
-            # -------------------------------------
-            
-            return f"✅ SUCCESS: I've added '{task}' to your database!"
-            
-    except json.JSONDecodeError:
-        # ถ้าไม่ใช่ JSON ให้คืนค่าเป็นคำตอบปกติของ AI
-        return ai_response
-    except Exception as e:
-        return f"Database Error: {e}"
+            db.add_task(task, "Today")
+            return f"✅ Added '{task}' to DB."
 
-# ==========================================
-# 3. MAIN LOOP (SPEECH TO TEXT)
-# ==========================================
+        elif data["name"] == "set_timer":
+            seconds = data["parameters"].get("seconds", 60)
+            label = data["parameters"].get("label", "Timer")
+
+            start_countdown(int(seconds), label)
+            return f"⏳ Timer set for {seconds} seconds."
+
+    except:
+        return ai_response
+
+
+# ================= VOICE =================
 recognizer = sr.Recognizer()
 bot = MimiAI()
 
-print("\n" + "="*30)
-print("✅ MIMI SYSTEM READY (Week 7)")
-print("Try saying: 'Add task buy milk'")
-print("="*30 + "\n")
+print("\n✅ MIMI SYSTEM READY")
 
 try:
-    # ใช้ไมโครโฟนเริ่มต้นของเครื่อง
     with sr.Microphone() as source:
-        print("🔈 Adjusting for background noise...")
         recognizer.adjust_for_ambient_noise(source, duration=1)
-        
+
         while True:
             try:
                 print("\n🎤 Listening...")
-                # รับเสียงจากไมค์
-                audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
-                
-                print("🧠 Transcribing...")
-                # ใช้ Google แทน Whisper เพื่อความเสถียรบน Windows
+                audio = recognizer.listen(source, timeout=5)
+
                 user_text = recognizer.recognize_google(audio)
+                print(f"💬 You: {user_text}")
 
-                if user_text:
-                    print(f"💬 You: {user_text}")
-                    
-                    # 1. ส่งข้อความไปหา AI
-                    raw_response = bot.chat(user_text)
-                    
-                    # 2. ประมวลผลว่าต้องลง Database ไหม (Action Logic)
-                    final_msg = process_action(raw_response)
-                    
-                    # 3. แสดงคำตอบของ Mimi
-                    print(f"🤖 Mimi: {final_msg}")
+                raw_response = bot.chat(user_text)
+                final_msg = process_action(raw_response)
 
-            except sr.WaitTimeoutError:
-                continue
+                print(f"🤖 Mimi: {final_msg}")
+
             except sr.UnknownValueError:
                 print("⚠️ Mimi couldn't hear you clearly.")
+                continue
+
             except Exception as e:
                 print(f"⚠️ Error: {e}")
 
 except KeyboardInterrupt:
-    print("\n🛑 System stopped by user.")
-except Exception as e:
-    print(f"❌ Critical Error: {e}")
+    print("\n🛑 Stopped.")
