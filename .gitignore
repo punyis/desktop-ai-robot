@@ -1,0 +1,16 @@
+.env
+*.db
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+dist/
+*.mp3
+*.wav
+temp_*
+temp*.wav
+temp*.mp3
+.DS_Store
+Thumbs.db
+*.log
