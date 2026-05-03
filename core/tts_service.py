@@ -1,6 +1,6 @@
 """
 tts_service.py - Text-to-Speech for Mimi
-Uses Edge TTS (Microsoft)
+Uses Edge TTS (Microsoft) via PulseAudio so chromium can share audio.
 """
 
 import os
@@ -12,18 +12,35 @@ from dotenv import load_dotenv
 load_dotenv()
 
 VOICE = os.getenv("TTS_VOICE", "en-US-AriaNeural")
+os.environ["SDL_AUDIODRIVER"] = "pulse"
 
 
 class TTSService:
     def __init__(self):
         self._lock = threading.Lock()
+        self._mixer_ok = False
         import pygame
         self._pygame = pygame
-        pygame.mixer.init()
+
+        # start pulseaudio before init mixer
+        import subprocess
+        subprocess.run(["pulseaudio", "--start", "--exit-idle-time=-1"],
+                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        try:
+            pygame.mixer.pre_init(44100, -16, 2, 512)
+            pygame.mixer.init()
+            self._mixer_ok = True
+            print("[TTS] Mixer ready (PulseAudio)")
+        except Exception as e:
+            print(f"[TTS] Mixer init failed: {e}")
+
         print(f"[TTS] Using Edge TTS - voice: {VOICE}")
 
     def speak(self, text: str, blocking: bool = True):
         print(f"[Mimi] {text}")
+        if not self._mixer_ok:
+            return
         if blocking:
             self._speak_now(text)
         else:
@@ -35,6 +52,8 @@ class TTSService:
             asyncio.run(self._speak_async(text))
 
     def play_beep(self):
+        if not self._mixer_ok:
+            return
         try:
             import numpy as np
             import pygame
@@ -43,21 +62,17 @@ class TTSService:
             def make_tone(freq, duration, volume=0.8):
                 t = np.linspace(0, duration, int(sample_rate * duration))
                 wave = np.sin(2 * np.pi * freq * t)
-                # fade out 
                 fade = np.linspace(1, 0, len(wave))
                 wave = (wave * fade * volume * 32767).astype(np.int16)
                 return np.column_stack([wave, wave])
 
-            # ting-tong
-            ding = make_tone(880, 0.18)   # hight note
-            dong = make_tone(660, 0.28)   # low note
+            ding = make_tone(880, 0.18)
+            dong = make_tone(660, 0.28)
             silence = np.zeros((int(sample_rate * 0.08), 2), dtype=np.int16)
-
             combined = np.concatenate([ding, silence, dong])
             sound = pygame.sndarray.make_sound(combined)
             sound.play()
             pygame.time.wait(int((0.18 + 0.08 + 0.28) * 1000) + 100)
-
         except Exception as e:
             print(f"[TTS] Beep error: {e}")
 

@@ -44,12 +44,21 @@ Delete a task:
 Clear all tasks:
 {{"name": "delete_todo", "parameters": {{"task_name": ""}}}}
 
+Stop music:
+{{"name": "stop_music", "parameters": {{}}}}
+
 DECISION RULES:
 - If user clearly wants to DO something, output ONLY the JSON, nothing else.
 - If info is missing ask ONE short question.
 - If it is just conversation reply with 1-2 friendly sentences.
+- For add_todo: ONLY include due_datetime if user gives a SPECIFIC time like "9 PM" or "8:30 AM".
+  If no time given → ask "What time should I remind you?" instead of outputting JSON.
+  NEVER use "now", "later", "soon" as due_datetime.
 
 EXAMPLES:
+User: "Remind me to bring water" -> What time should I remind you?
+User: "Remind me to call mom" -> What time should I remind you?
+User: "Remind me to submit report at 9 PM" -> {{"name": "add_todo", "parameters": {{"task_name": "Submit report", "due_datetime": "9 PM"}}}}
 User: "Hello" -> Hi! I am ready to help.
 User: "Remind me to call Mom at 9 PM" -> {{"name": "add_todo", "parameters": {{"task_name": "Call Mom", "due_datetime": "9 PM"}}}}
 User: "Set a timer" -> For how long?
@@ -59,6 +68,8 @@ User: "Play some music" -> {{"name": "play_music", "parameters": {{"genre": "lof
 User: "How much time is left?" -> {{"name": "query_timer", "parameters": {{}}}}
 User: "Remove the call Mom task" -> {{"name": "delete_todo", "parameters": {{"task_name": "Call Mom"}}}}
 User: "Clear all my tasks" -> {{"name": "delete_todo", "parameters": {{"task_name": ""}}}}
+User: "Stop the music" -> {{"name": "stop_music", "parameters": {{}}}}
+User: "Turn off music" -> {{"name": "stop_music", "parameters": {{}}}}
 """
 
 
